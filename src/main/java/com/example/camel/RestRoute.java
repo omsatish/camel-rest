@@ -56,7 +56,7 @@ public class RestRoute extends RouteBuilder {
                     exchange.getIn().setBody(person);
                 });
 
-        /*from("direct:updatePerson")
+        from("direct:updatePerson")
                 .log("Updating person with ID: ${header.id}")
                 .process(exchange -> {
                     Long id = exchange.getIn().getHeader("id", Long.class);
@@ -64,7 +64,8 @@ public class RestRoute extends RouteBuilder {
                     updatedPerson.setId(id); // Ensure ID is set for update
                     exchange.getIn().setBody(updatedPerson);
                 })
-                .to("jpa:com.example.camel.entities.Person");*/
+                .to("jpa:com.example.camel.entities.Person");
+
 
         from("direct:updatePersonJPA")
                 .log("Updating person with ID: ${header.id}")
@@ -79,11 +80,14 @@ public class RestRoute extends RouteBuilder {
                     exchange.getIn().setBody(savedPerson);
                 });
 
-        /*from("direct:deletePerson")
+        from("direct:deletePerson")
                 .log("Deleting person with ID: ${header.id}")
-                .setBody(simple("${header.id}"))
-                .to("jpa:com.example.camel.entities.Person?operation=remove")
-                .log("Person deleted successfully");*/
+                .process(exchange -> {
+                    Long id = exchange.getIn().getHeader("id", Long.class);
+                    exchange.getIn().setBody(id);
+                })
+                .toD("jpa:com.example.camel.entities.Person?nativeQuery=DELETE FROM Person WHERE id = ${header.id}")
+                .log("Person deleted successfully");
 
         from("direct:deletePersonJPA")
                 .log("Deleting person with ID: ${header.id}")
