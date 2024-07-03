@@ -18,17 +18,23 @@ public class RestRoute extends RouteBuilder {
         restConfiguration()
                 .component("jetty")
                 .host("0.0.0.0")
-                .port(8080)
+                .port(8081)
                 .bindingMode(RestBindingMode.json)
                 .enableCORS(true);
 
         rest("/api")
                 .post("/persons").type(Person.class).to("direct:createPerson")
-                .get("/persons/{id}").outType(Person.class).to("direct:getPersonById")
-                .put("/persons/{id}").type(Person.class).to("direct:updatePerson")
-                .delete("/persons/{id}").to("direct:deletePerson");
+                .get("/persons/{id}").outType(Person.class).to("direct:getPersonById");
+               // .put("/persons/{id}").type(Person.class).to("direct:updatePerson")
+               // .delete("/persons/{id}").to("direct:deletePerson");
 
         from("direct:createPerson")
+                .log("Creating person: ${body}")
+                .to("jpa:com.example.camel.entities.Person")
+                .log("Person created successfully");
+
+
+        from("direct:createPersonJPA")
                 .log("Creating person: ${body}")
                 .process(exchange -> {
                     Person person = exchange.getIn().getBody(Person.class);
@@ -38,6 +44,11 @@ public class RestRoute extends RouteBuilder {
 
         from("direct:getPersonById")
                 .log("Fetching person with ID: ${header.id}")
+                .toD("jpa:com.example.camel.entities.Person?query=select p from Person p where p.id = ${header.id}")
+                .log("Person fetched successfully: ${body}");
+
+        from("direct:getPersonByIdJPA")
+                .log("Fetching person with ID: ${header.id}")
                 .process(exchange -> {
                     Long id = exchange.getIn().getHeader("id", Long.class);
                     Person person = personRepository.findById(id)
@@ -45,7 +56,17 @@ public class RestRoute extends RouteBuilder {
                     exchange.getIn().setBody(person);
                 });
 
-        from("direct:updatePerson")
+        /*from("direct:updatePerson")
+                .log("Updating person with ID: ${header.id}")
+                .process(exchange -> {
+                    Long id = exchange.getIn().getHeader("id", Long.class);
+                    Person updatedPerson = exchange.getIn().getBody(Person.class);
+                    updatedPerson.setId(id); // Ensure ID is set for update
+                    exchange.getIn().setBody(updatedPerson);
+                })
+                .to("jpa:com.example.camel.entities.Person");*/
+
+        from("direct:updatePersonJPA")
                 .log("Updating person with ID: ${header.id}")
                 .process(exchange -> {
                     Long id = exchange.getIn().getHeader("id", Long.class);
@@ -58,7 +79,13 @@ public class RestRoute extends RouteBuilder {
                     exchange.getIn().setBody(savedPerson);
                 });
 
-        from("direct:deletePerson")
+        /*from("direct:deletePerson")
+                .log("Deleting person with ID: ${header.id}")
+                .setBody(simple("${header.id}"))
+                .to("jpa:com.example.camel.entities.Person?operation=remove")
+                .log("Person deleted successfully");*/
+
+        from("direct:deletePersonJPA")
                 .log("Deleting person with ID: ${header.id}")
                 .process(exchange -> {
                     Long id = exchange.getIn().getHeader("id", Long.class);
