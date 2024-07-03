@@ -4,6 +4,7 @@ import com.example.camel.entiry.Person;
 import com.example.camel.repository.PersonRepository;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
+import org.apache.camel.Predicate;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,8 @@ public class PersonRouts extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+
+        Predicate isCityNoida = header("city").isEqualTo("Noida");
 
         onException(JmsException.class, ConnectException.class)
                 .routeId("jmsExceptionRoutId")
@@ -52,7 +55,7 @@ public class PersonRouts extends RouteBuilder {
                 .log("Sending inDB person: ${body}")
                 .bean(InboundRestProcessor.class, "process")
                 .choice()
-                    .when(simple("${header.city} == 'Noida'"))
+                    .when(isCityNoida)
                         .log(LoggingLevel.INFO, "Only DB")
                         .to("seda:toDB")
                     .otherwise()
